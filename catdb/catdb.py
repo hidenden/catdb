@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-from datetime import datetime, date
+from datetime import date
 from typing import Optional
+import pandas as pd
 from catdb.commands.add import add_weight_record
 from catdb.commands.update import update_weight_record
 from catdb.commands.delete import delete_weight_record
@@ -18,7 +19,8 @@ def catdb_main() -> None:
 
     # Init command
     init_parser = subparsers.add_parser("init", help="Initialize the database")
-    
+    init_parser.add_argument("--csv", type=str, help="Path to a CSV file to load initial data")
+
     # Add command
     add_parser = subparsers.add_parser("add", help="Add a new weight record")
     add_parser.add_argument("date", type=str, help="Date of the record in 'YYYY-MM-DD' format")
@@ -46,7 +48,7 @@ def catdb_main() -> None:
     try:
         # Process commands
         if args.command == "init":
-            initialize_database(db_file)
+            initialize_database(db_file, csv_file=args.csv)
         elif args.command == "add":
             record_date = parse_date(args.date)
             add_weight_record(db_file, record_date, args.weight, args.notes)
@@ -68,4 +70,3 @@ def catdb_main() -> None:
 
 if __name__ == "__main__":
     catdb_main()
-
