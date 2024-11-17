@@ -1,38 +1,47 @@
 from datetime import date
-from typing import List
-from catdb.db.database import DatabaseConnection
+from catdb.db.database import CatWeightDB
+import pandas as pd
 
-def get_weight_records(db_file: str, date: date | None = None) -> tuple[bool, str | List[tuple[date, float, str | None]]]:
+def print_weight_records(db_file: str, begin_date: date | None = None, end_date: date | None = None) -> None:
     """
-    Retrieves a weight record or records from the database. If a date is specified, 
-    it retrieves the record for that date. If no date is provided, it retrieves all records.
+    Retrieves and prints weight record(s) from the database based on specified date criteria.
+    - If both dates are None, retrieves all records.
+    - If begin_date is specified and end_date is None, retrieves a specific record.
+    - If both dates are specified, retrieves records within the date range.
 
     Parameters:
     - db_file (str): Path to the SQLite3 database file.
-    - date (date | None): Specific date of the record as a datetime.date object. 
-                          If None, retrieves all records.
+    - begin_date (date | None): The start date of the range or specific date of the record.
+    - end_date (date | None): The end date of the range.
 
     Returns:
-    - tuple[bool, str | List[tuple[date, float, str | None]]]: A tuple where the first element 
-      is True if records are found, False otherwise. The second element is a list of records 
-      (date, weight, notes) if records are found, or a string message if no records are found.
+    - None
     """
-    db = DatabaseConnection(db_file)
+    db = CatWeightDB(db_file)
     db.connect()
     
-    if date:
-        # Retrieve a specific record
-        record = db.get_weight_record(date)
-        db.close()
-        if record:
-            return True, [record]  # Return a list with a single record tuple
-        else:
-            return False, f"No record found for date {date}."
-    else:
+    if begin_date is None and end_date is None:
         # Retrieve all records
         records = db.get_all_records()
-        db.close()
-        if records:
-            return True, records  # Return a list of records
+        if not records.empty:
+            print(records)
         else:
-            return False, "No records found."
+            print("No records found.")
+    
+    elif begin_date is not None and end_date is None:
+        # Retrieve a specific record
+        record = db.get_weight_record(begin_date)
+        if not record.empty:
+            print(record)
+        else:
+            print(f"No record found for date {begin_date}.")
+    
+    elif begin_date is not None and end_date is not None:
+        # Retrieve records within the date range
+        records = db.get_records_by_date_range(begin_date, end_date)
+        if not records.empty:
+            print(records)
+        else:
+            print(f"No records found between {begin_date} and {end_date}.")
+    
+    db.close()

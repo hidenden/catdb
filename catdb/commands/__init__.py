@@ -7,13 +7,13 @@ such as add, display, update, and delete, which manage cat weight records.
 
 # 各コマンドのインポート
 from .add import add_weight_record
-from .get import get_weight_records
+from .get import print_weight_records
 from .update import update_weight_record
 from .delete import delete_weight_record
 
 __all__ = [
     "add_weight_record",
-    "get_weight_records",
+    "print_weight_records",
     "update_weight_record",
     "delete_weight_record"
 ]

@@ -9,8 +9,8 @@ Modules:
 """
 
 # データベース接続クラスのインポート
-from .database import DatabaseConnection
+from .database import CatWeightDB
 
 __all__ = [
-    "DatabaseConnection"
+    "CatWeightDB"
 ]

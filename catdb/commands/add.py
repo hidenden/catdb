@@ -1,10 +1,10 @@
-from typing import Optional, Tuple
+from typing import Optional
 from datetime import date as DateType
-from catdb.db.database import DatabaseConnection
+from catdb.db.database import CatWeightDB
 
-def add_weight_record(db_file: str, date: DateType, weight: float, notes: Optional[str] = None) -> Tuple[bool, str]:
+def add_weight_record(db_file: str, date: DateType, weight: float, notes: Optional[str] = None) -> None:
     """
-    Adds a new weight record to the database.
+    Adds a new weight record to the database and prints the result to STDOUT.
 
     Parameters:
     - db_file (str): Path to the SQLite3 database file.
@@ -13,17 +13,16 @@ def add_weight_record(db_file: str, date: DateType, weight: float, notes: Option
     - notes (Optional[str]): Optional notes for the record.
 
     Returns:
-    - Tuple[bool, str]: A tuple where the first element is True if the operation was successful,
-      and the second element is a message indicating the result.
+    - None
     """
-    db = DatabaseConnection(db_file)
+    db = CatWeightDB(db_file)
     db.connect()
+    
     # DatabaseConnection の関数も date を datetime.date 型で受け取る
     success = db.add_weight_record(date, weight, notes)
     db.close()
     
     if success:
-        return True, f"Record added: {date}, {weight} kg, Notes: {notes}"
+        print(f"Record added: {date}, {weight} kg, Notes: {notes}")
     else:
-        return False, f"Failed to add record for date {date}. Record may already exist."
-       
+        print(f"Failed to add record for date {date}. Record may already exist.")

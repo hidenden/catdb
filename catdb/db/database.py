@@ -1,9 +1,10 @@
 import sqlite3
 from sqlite3 import Connection
-from typing import List, Tuple, Dict
+from typing import List
 from datetime import date
+import pandas as pd
 
-class DatabaseConnection:
+class CatWeightDB:
     """
     DatabaseConnection class for managing SQLite3 database interactions
     related to cat weight records.
@@ -37,7 +38,10 @@ class DatabaseConnection:
         Returns:
         - bool: True if the table was created, False if it already existed.
         """
-        cursor = self.conn.cursor()
+        if self.conn != None:
+            cursor = self.conn.cursor()
+        else:
+            return False
         
         # テーブルの存在確認
         cursor.execute("""
@@ -70,6 +74,9 @@ class DatabaseConnection:
         Returns:
         - bool: True if insertion was successful, False otherwise.
         """
+        if self.conn == None:
+            return False
+        
         try:
             with self.conn:
                 self.conn.execute(
@@ -80,38 +87,34 @@ class DatabaseConnection:
         except sqlite3.IntegrityError:
             return False  # Date already exists as primary key
 
-    def get_weight_record(self, date: date) -> Tuple[date, float, str | None] | None:
+    def get_weight_record(self, date: date) -> pd.DataFrame:
         """
-        Retrieves a weight record by date.
+        Retrieves a weight record by date and returns it as a pandas DataFrame.
 
         Parameters:
         - date (date): Date of the record as a datetime.date object.
 
         Returns:
-        - Tuple[date, float, str | None] | None: Record as (date, weight, notes) or None if not found.
+        - pd.DataFrame: DataFrame with columns 'date', 'weight', 'notes' where 'date' is pandas.Timestamp.
         """
-        cursor = self.conn.execute(
-            "SELECT date, weight, notes FROM cat_weight_records WHERE date = ?",
-            (date.isoformat(),)
-        )
-        result = cursor.fetchone()
-        if result:
-            # 日付の文字列を datetime.date に変換
-            return (date.fromisoformat(result[0]), result[1], result[2])
-        return None
+        query = "SELECT date, weight, notes FROM cat_weight_records WHERE date = ?"
+        df = pd.read_sql_query(query, self.conn, params=[date.isoformat()])
+        df['date'] = pd.to_datetime(df['date'])  # Convert date column to pandas.Timestamp
+        return df
 
-    def get_all_records(self) -> List[Tuple[date, float, str | None]]:
+    def get_all_records(self) -> pd.DataFrame:
         """
-        Retrieves all weight records from the database.
+        Retrieves all weight records from the database and returns them as a pandas DataFrame.
 
         Returns:
-        - List[Tuple[date, float, str | None]]: List of all records as (date, weight, notes).
+        - pd.DataFrame: DataFrame containing all records with columns 'date', 'weight', 'notes' where 'date' is pandas.Timestamp.
         """
-        cursor = self.conn.execute("SELECT date, weight, notes FROM cat_weight_records ORDER BY date")
-        # 日付の文字列を datetime.date に変換して返す
-        return [(date.fromisoformat(row[0]), row[1], row[2]) for row in cursor.fetchall()]
-    
-    def get_records_by_date_range(self, begin_date: date, end_date: date) -> List[Tuple[date, float, str | None]]:
+        query = "SELECT date, weight, notes FROM cat_weight_records ORDER BY date"
+        df = pd.read_sql_query(query, self.conn)
+        df['date'] = pd.to_datetime(df['date'])  # Convert date column to pandas.Timestamp
+        return df
+
+    def get_records_by_date_range(self, begin_date: date, end_date: date) -> pd.DataFrame:
         """
         Retrieves records within a specific date range, inclusive of begin_date and end_date.
 
@@ -120,16 +123,17 @@ class DatabaseConnection:
         - end_date (date): The end date of the range as a datetime.date object.
 
         Returns:
-        - List[Tuple[date, float, str | None]]: List of records within the date range as (date, weight, notes).
+        - pd.DataFrame: DataFrame containing records within the date range with columns 'date', 'weight', 'notes' where 'date' is pandas.Timestamp.
         """
-        cursor = self.conn.execute("""
+        query = """
             SELECT date, weight, notes 
             FROM cat_weight_records 
             WHERE date BETWEEN ? AND ? 
             ORDER BY date
-        """, (begin_date.isoformat(), end_date.isoformat()))
-        
-        return [(date.fromisoformat(row[0]), row[1], row[2]) for row in cursor.fetchall()]
+        """
+        df = pd.read_sql_query(query, self.conn, params=[begin_date.isoformat(), end_date.isoformat()])
+        df['date'] = pd.to_datetime(df['date'])  # Convert date column to pandas.Timestamp
+        return df
 
     def update_weight_record(self, date: date, weight: float, notes: str | None = None) -> bool:
         """
@@ -143,6 +147,9 @@ class DatabaseConnection:
         Returns:
         - bool: True if update was successful, False if record does not exist.
         """
+        if self.conn == None:
+            return False
+        
         with self.conn:
             cursor = self.conn.execute(
                 "UPDATE cat_weight_records SET weight = ?, notes = ? WHERE date = ?",
@@ -150,19 +157,21 @@ class DatabaseConnection:
             )
             return cursor.rowcount > 0
 
-    def upsert_weight_records(self, records: List[Dict[str, date | float | str | None]]) -> None:
+    def upsert_weight_records(self, records: pd.DataFrame) -> bool:
         """
         Inserts or updates multiple weight records in the database.
 
         Parameters:
-        - records (List[Dict[str, date | float | str | None]]): List of dictionaries representing the records to upsert.
-          Each dictionary should have the keys: 'date' (date), 'weight' (float), and 'notes' (str | None).
+        - records (pd.DataFrame): DataFrame with columns 'date', 'weight', 'notes' where 'date' is pandas.Timestamp.
 
         Notes:
         - Uses SQLite3 UPSERT feature (INSERT OR REPLACE) to perform the operation.
         """
+        if self.conn == None:
+            return False
+
         with self.conn:
-            for record in records:
+            for _, record in records.iterrows():
                 self.conn.execute("""
                     INSERT INTO cat_weight_records (date, weight, notes)
                     VALUES (?, ?, ?)
@@ -170,8 +179,9 @@ class DatabaseConnection:
                         weight = excluded.weight,
                         notes = excluded.notes
                 """, (record['date'].isoformat(), record['weight'], record['notes']))
+        return True
 
-    
+
     def delete_weight_record(self, date: date) -> bool:
         """
         Deletes a weight record by date.
@@ -182,6 +192,8 @@ class DatabaseConnection:
         Returns:
         - bool: True if deletion was successful, False if record does not exist.
         """
+        if self.conn == None:
+            return False
         with self.conn:
             cursor = self.conn.execute("DELETE FROM cat_weight_records WHERE date = ?", (date.isoformat(),))
             return cursor.rowcount > 0

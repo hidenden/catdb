@@ -1,55 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 from datetime import datetime, date
 from typing import Optional
 from catdb.commands.add import add_weight_record
 from catdb.commands.update import update_weight_record
 from catdb.commands.delete import delete_weight_record
-from catdb.commands.get import get_weight_records
+from catdb.commands.get import print_weight_records
 from catdb.commands.initialize import initialize_database
-
-def parse_date(date_str: str) -> date:
-    """
-    Parses a date string into a datetime.date object. Supports multiple date formats.
-
-    Parameters:
-    - date_str (str): Date string to parse.
-
-    Returns:
-    - date: Parsed date as a datetime.date object.
-
-    Raises:
-    - ValueError: If the date format is not supported.
-    """
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%m-%d-%Y", "%m/%d/%Y"):
-        try:
-            return datetime.strptime(date_str, fmt).date()
-        except ValueError:
-            continue
-    raise ValueError(f"Invalid date format: {date_str}")
-
-def get_database_file(args_db_file: Optional[str]) -> str:
-    """
-    Determines the database file path based on the --db-file argument or CAT_DB environment variable.
-
-    Parameters:
-    - args_db_file (Optional[str]): The --db-file argument value.
-
-    Returns:
-    - str: The path to the database file.
-
-    Raises:
-    - SystemExit: If neither --db-file is provided nor CAT_DB environment variable is set.
-    """
-    if args_db_file:
-        return args_db_file
-    elif "CAT_DB" in os.environ:
-        return os.environ["CAT_DB"]
-    else:
-        print("Error: Please provide a database file with --db-file or set the CAT_DB environment variable.")
-        exit(1)
+from catdb.utils.utils import parse_date, get_database_file
 
 def catdb_main() -> None:
     parser = argparse.ArgumentParser(description="Cat Weight Database CLI")
@@ -78,49 +37,35 @@ def catdb_main() -> None:
 
     # Display command
     display_parser = subparsers.add_parser("display", help="Display weight records")
-    display_parser.add_argument("--date", type=str, help="Specific date of the record in 'YYYY-MM-DD' format")
+    display_parser.add_argument("--begin-date", type=str, help="Start date of the range in 'YYYY-MM-DD' format")
+    display_parser.add_argument("--end-date", type=str, help="End date of the range in 'YYYY-MM-DD' format")
 
     args = parser.parse_args()
     db_file = get_database_file(args.db_file)
 
-    # Process commands
-    if args.command == "init":
-        success, message = initialize_database(db_file)
-        print("Success:" if success else "Info:", message)
-    elif args.command == "add":
-        try:
+    try:
+        # Process commands
+        if args.command == "init":
+            initialize_database(db_file)
+        elif args.command == "add":
             record_date = parse_date(args.date)
-            success, message = add_weight_record(db_file, record_date, args.weight, args.notes)
-            print("Success:" if success else "Error:", message)
-        except ValueError as e:
-            print(f"Error: {e}")
-    elif args.command == "update":
-        try:
+            add_weight_record(db_file, record_date, args.weight, args.notes)
+        elif args.command == "update":
             record_date = parse_date(args.date)
-            success, message = update_weight_record(db_file, record_date, args.weight, args.notes)
-            print("Success:" if success else "Error:", message)
-        except ValueError as e:
-            print(f"Error: {e}")
-    elif args.command == "delete":
-        try:
+            update_weight_record(db_file, record_date, args.weight, args.notes)
+        elif args.command == "delete":
             record_date = parse_date(args.date)
-            success, message = delete_weight_record(db_file, record_date)
-            print("Success:" if success else "Error:", message)
-        except ValueError as e:
-            print(f"Error: {e}")
-    elif args.command == "display":
-        try:
-            record_date = parse_date(args.date) if args.date else None
-            success, result = get_weight_records(db_file, date=record_date)
-            if success:
-                for record in result:
-                    print(f"Date: {record[0]}, Weight: {record[1]} kg, Notes: {record[2]}")
-            else:
-                print("Info:", result)
-        except ValueError as e:
-            print(f"Error: {e}")
-    else:
-        parser.print_help()
+            delete_weight_record(db_file, record_date)
+        elif args.command == "display":
+            begin_date = parse_date(args.begin_date) if args.begin_date else None
+            end_date = parse_date(args.end_date) if args.end_date else None
+            print_weight_records(db_file, begin_date=begin_date, end_date=end_date)
+        else:
+            parser.print_help()
+
+    except ValueError as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     catdb_main()
+
