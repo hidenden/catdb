@@ -37,10 +37,10 @@ def catdb_main() -> None:
     delete_parser = subparsers.add_parser("delete", help="Delete a weight record")
     delete_parser.add_argument("date", type=str, help="Date of the record to delete in 'YYYY-MM-DD' format")
 
-    # Display command
-    display_parser = subparsers.add_parser("display", help="Display weight records")
-    display_parser.add_argument("--begin-date", type=str, help="Start date of the range in 'YYYY-MM-DD' format")
-    display_parser.add_argument("--end-date", type=str, help="End date of the range in 'YYYY-MM-DD' format")
+    # List command
+    list_parser = subparsers.add_parser("list", help="List weight records")
+    list_parser.add_argument("--begin-date", type=str, help="Start date of the range in 'YYYY-MM-DD' format")
+    list_parser.add_argument("--end-date", type=str, help="End date of the range in 'YYYY-MM-DD' format")
 
     args = parser.parse_args()
     db_file = get_database_file(args.db_file)
@@ -58,12 +58,14 @@ def catdb_main() -> None:
         elif args.command == "delete":
             record_date = parse_date(args.date)
             delete_weight_record(db_file, record_date)
-        elif args.command == "display":
+        elif args.command == "list":
             begin_date = parse_date(args.begin_date) if args.begin_date else None
             end_date = parse_date(args.end_date) if args.end_date else None
             print_weight_records(db_file, begin_date=begin_date, end_date=end_date)
         else:
             parser.print_help()
+            if db_file:
+                print(f"\nCurrent database:{db_file}\n")
 
     except ValueError as e:
         print(f"Error: {e}")

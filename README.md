@@ -70,7 +70,7 @@
 特定の日付の体重記録またはすべての記録を表示します。
 
 ```
-./catdb.py display [--date <date>] [--db-file <path/to/database>]
+./catdb.py list [--date <date>] [--db-file <path/to/database>]
 ```
 
 -	--date: 表示する特定の日付（YYYY-MM-DD 形式）。指定しない場合はすべての記録を表示します。
@@ -110,16 +110,16 @@ export CAT_DB=/path/to/your/cat_data.db
 ./catdb.py delete 2024-11-16
 ```
 
-#### すべての記録を表示
+#### 直近の記録を表示
 
 ```
-./catdb.py display
+./catdb.py list
 ```
 
 #### 特定の日付の記録を表示
 
 ```
-./catdb.py display --date 2024-11-16
+./catdb.py list --date 2024-11-16
 ```
 
 ### 注意事項
