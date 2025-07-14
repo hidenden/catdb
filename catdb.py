@@ -8,6 +8,7 @@ from catdb.commands.add import add_weight_record
 from catdb.commands.update import update_weight_record
 from catdb.commands.delete import delete_weight_record
 from catdb.commands.get import print_weight_records
+from catdb.commands.graph import graph_weight_records
 from catdb.commands.initialize import initialize_database
 from catdb.utils.utils import parse_date, get_database_file
 
@@ -42,6 +43,10 @@ def catdb_main() -> None:
     list_parser.add_argument("--begin-date", type=str, help="Start date of the range in 'YYYY-MM-DD' format")
     list_parser.add_argument("--end-date", type=str, help="End date of the range in 'YYYY-MM-DD' format")
 
+    # Graph command
+    graph_parser = subparsers.add_parser("graph", help="Graph weight records")
+    graph_parser.add_argument("--graph-file", type=str, help="Output graph file name", default=None)
+    
     args = parser.parse_args()
     db_file = get_database_file(args.db_file)
 
@@ -62,6 +67,8 @@ def catdb_main() -> None:
             begin_date = parse_date(args.begin_date) if args.begin_date else None
             end_date = parse_date(args.end_date) if args.end_date else None
             print_weight_records(db_file, begin_date=begin_date, end_date=end_date)
+        elif args.command == "graph":
+            graph_weight_records(db_file, args.graph_file)
         else:
             parser.print_help()
             if db_file:

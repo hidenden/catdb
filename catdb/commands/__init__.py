@@ -10,10 +10,12 @@ from .add import add_weight_record
 from .get import print_weight_records
 from .update import update_weight_record
 from .delete import delete_weight_record
+from .graph import graph_weight_records
 
 __all__ = [
     "add_weight_record",
     "print_weight_records",
     "update_weight_record",
-    "delete_weight_record"
+    "delete_weight_record",
+    "graph_weight_records",
 ]
